@@ -2,6 +2,7 @@ package com.coolweather.app.activity;
 
 import java.security.PublicKey;
 
+import com.coolweather.app.receiver.AutoUpdateService;
 import com.coolweather.app.util.HttpCallbackListener;
 import com.coolweather.app.util.HttpUtil;
 import com.coolweather.app.util.Utility;
@@ -129,5 +130,7 @@ public class WeatherActivity extends Activity{
 	   publishText.setText("今天"+prfs.getString("publish_time", "")+"发布");
 	   currentDateText.setText(prfs.getString("current_date", ""));
 	   weatherInfoLayout.setVisibility(View.VISIBLE);
+	   Intent i=new Intent(this, AutoUpdateService.class);
+	   startService(i);
    }
 }
