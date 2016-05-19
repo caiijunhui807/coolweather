@@ -14,7 +14,10 @@ import com.example.coolweather.R;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.Window;
@@ -41,11 +44,22 @@ public class ChooseAreaActivity extends Activity {
 	private Province selectedProvince;
 	private City selectedCity;
 	private int currentLevel;
+	private boolean isFromWeatherActivity;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
+		isFromWeatherActivity = getIntent().getBooleanExtra(
+				"from_weather_activity", false);
+		SharedPreferences prf = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		if (prf.getBoolean("cit_selected", false) && !isFromWeatherActivity) {
+			Intent intent = new Intent(this, WeatherActivity.class);
+			startActivity(intent);
+			finish();
+			return;
+		}
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.choose_area);
 		textview = (TextView) findViewById(R.id.text);
@@ -66,6 +80,14 @@ public class ChooseAreaActivity extends Activity {
 				} else if (currentLevel == LEVEL_CITY) {
 					selectedCity = cityList.get(position);
 					queryCounties();
+				} else if (currentLevel == LEVEL_COUNTY) {
+					String countyCode = countyList.get(position)
+							.getCountyCode();
+					Intent intent1 = new Intent(ChooseAreaActivity.this,
+							WeatherActivity.class);
+					intent1.putExtra("county_code", countyCode);
+					startActivity(intent1);
+					finish();
 				}
 			}
 		});
@@ -126,70 +148,81 @@ public class ChooseAreaActivity extends Activity {
 		if (!TextUtils.isEmpty(code)) {
 			address = "http://www.weather.com.cn/data/list3/city" + code
 					+ ".xml";
-		}else{
-			address= "http://www.weather.com.cn/data/list3/city.xml";
+		} else {
+			address = "http://www.weather.com.cn/data/list3/city.xml";
 		}
 		showProgressDialog();
 		HttpUtil.sendHttpRequset(address, new HttpCallbackListener() {
 			@Override
 			public void onFinish(String response) {
 				// TODO Auto-generated method stub
-				boolean result=false;
-				if("province".equals(type)){
-					result=Utility.handleProvinceResponse(coolWeatherDB, response);
-				}else if("city".equals(type)){
-					result=Utility.handleCitiesResponse(coolWeatherDB, response, selectedProvince.getId());
-				}else if("county".equals(type)){
-					result=Utility.handleCountiesResponse(coolWeatherDB, response, selectedCity.getId());
+				boolean result = false;
+				if ("province".equals(type)) {
+					result = Utility.handleProvinceResponse(coolWeatherDB,
+							response);
+				} else if ("city".equals(type)) {
+					result = Utility.handleCitiesResponse(coolWeatherDB,
+							response, selectedProvince.getId());
+				} else if ("county".equals(type)) {
+					result = Utility.handleCountiesResponse(coolWeatherDB,
+							response, selectedCity.getId());
 				}
-				if(result){
+				if (result) {
 					runOnUiThread(new Runnable() {
 						public void run() {
 							closeProgressDialog();
-							if("province".equals(type)){
+							if ("province".equals(type)) {
 								queryProvinces();
-							}else if("city".equals(type)){
+							} else if ("city".equals(type)) {
 								queryCities();
-							}else if("county".equals(type)){
+							} else if ("county".equals(type)) {
 								queryCounties();
 							}
 						}
 					});
 				}
 			}
-			
+
 			@Override
 			public void onError(Exception e) {
 				// TODO Auto-generated method stub
-				runOnUiThread( new Runnable() {
+				runOnUiThread(new Runnable() {
 					public void run() {
 						closeProgressDialog();
-						Toast.makeText(ChooseAreaActivity.this, "加载失败", Toast.LENGTH_SHORT).show();
+						Toast.makeText(ChooseAreaActivity.this, "加载失败",
+								Toast.LENGTH_SHORT).show();
 					}
 				});
 			}
 		});
 	}
-	private void showProgressDialog(){
-		if(progressdialog==null){
-			progressdialog=new ProgressDialog(this);
+
+	private void showProgressDialog() {
+		if (progressdialog == null) {
+			progressdialog = new ProgressDialog(this);
 			progressdialog.setMessage("正在加载...");
 			progressdialog.setCanceledOnTouchOutside(false);
 		}
 		progressdialog.show();
 	}
-	private void closeProgressDialog(){
-		if(progressdialog!=null){
+
+	private void closeProgressDialog() {
+		if (progressdialog != null) {
 			progressdialog.dismiss();
 		}
 	}
+
 	@Override
 	public void onBackPressed() {
-		if(currentLevel==LEVEL_COUNTY){
+		if (currentLevel == LEVEL_COUNTY) {
 			queryCities();
-		}else if(currentLevel==LEVEL_CITY){
+		} else if (currentLevel == LEVEL_CITY) {
 			queryProvinces();
-		}else{
+		} else {
+			if (isFromWeatherActivity) {
+				Intent intent = new Intent(this, WeatherActivity.class);
+				startActivity(intent);
+			}
 			finish();
 		}
 	}
